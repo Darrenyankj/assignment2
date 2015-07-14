@@ -1,28 +1,82 @@
-@import url(http://fonts.googleapis.com/css?family=Gloria+Hallelujah);
-* { box-sizing:border-box; }
-body { background:url(media/little_pluses.png) #cacaca; margin:30px; }
-
-textarea  { 
-	display: block;
-	padding: 25px 25px 40px;
-	margin:0 auto 20px auto;
-	width:250px;
-	height:250px;   
-	font:20px 'Gloria Hallelujah', cursive; 
-	line-height:1.5;
-	border:0;
-	border-radius:3px;
-	background: -webkit-linear-gradient(#F9EFAF, #F7E98D);
-	background: -moz-linear-gradient(#F9EFAF, #F7E98D);
-	background: -o-linear-gradient(#F9EFAF, #F7E98D);
-	background: -ms-linear-gradient(#F9EFAF, #F7E98D);
-	background: linear-gradient(#F9EFAF, #F7E98D);
-	box-shadow:0 4px 6px rgba(0,0,0,0.1);
-	overflow:hidden;
-	transition:box-shadow 0.5s ease;
-	font-smoothing:subpixel-antialiased;
-	max-width:520px;
-	max-height:250px;
+*{
+  margin: 0;
+  padding: 0;
+  outline: none;
+	border: none;
+	box-sizing: border-box;
 }
-textarea:hover { box-shadow:0 5px 8px rgba(0,0,0,0.15); }
-textarea:focus { box-shadow:0 5px 12px rgba(0,0,0,0.2); outline:none; }
+*:before,
+*:after{
+	box-sizing: border-box;	
+}
+html,body{
+	min-height: 100%;
+}
+body{
+	background-image: radial-gradient(mintcream 0%, gray 100%);
+	font-family: "Century Gothic";
+}
+.wrap{
+	width: 300px;
+	height: 350px;
+	margin: 50px auto;
+	border-radius: 20px;
+	border: solid 8px #2c3033;
+	background: white;
+	box-shadow: 0 0 0px 1px rgba(255,255,255,.4),
+						0 0 0px 3px #2c3033;
+}
+.header{
+	width: 100%;
+	height: 50px;
+
+	border-radius: 10px 10px 0 0px;
+	background-image: linear-gradient(#687480 0%, #3b4755 100%);
+	font: bold 18px/50px arial;
+	text-align: center;
+	color: white;
+	box-shadow: inset 0 -2px 3px 2px rgba(0,0,0,.4),
+						0 2px 2px 2px rgba(0,0,0,.4);
+}
+span{
+	display: block;
+	width: 100%;
+	height: 90%;
+	border-bottom: dashed 2px #54687a;
+}
+.wrap-list{
+	height: 85%;
+	padding: 20px 0px;
+	box-shadow: inset 0 0px 5px black;
+	border-radius: 0 0 10px 10px;
+	background-image: linear-gradient(transparent 97%, gray 100%);
+}
+
+input[type="checkbox"]{
+  position: relative;
+  top: 14px;
+  right: 12px;
+	float: right;
+}
+input[type="checkbox"]:checked + label{
+	text-decoration: line-through;
+	color: rgba(0,0,0,.3);
+}
+.list{
+	list-style: none;
+	color: rgba(0,0,0,.7);
+}
+.list li:nth-child(odd){
+	background: rgba(0,0,50,.1);
+}
+.list li{
+	float: left;
+	width: 100%;
+}
+label{
+  padding: 10px;
+	cursor: pointer;
+	float: left;
+	width: 95%;
+	transition: all .3s ease;
+}

@@ -2,15 +2,22 @@
 <link rel="stylesheet" type="text/css" href="{% static 'todo/style.css' %}" />
 {% if things %}
     {% for thing in things %}
-        <a href={% url 'detail' thing.id %}>
-            <textarea>
-                {{thing.title}}
-                {{thing.content}}
-                {{thing.todo_date}}
-            </textarea>
-        </a>
+    <div class="wrap">
+        <div class="header"><span>Todo List</span></div>
+            <div class="wrap-list">
+                <ol class="list">
+                    <li>
+                        <a href={% url 'detail' thing.id %}>
+                        <input type="checkbox" thing.id >
+                        <label for=thing.id> {{thing.title}}</label></a>
+                        {{thing.content}}
+                        <br>
+                        {{thing.todo_date}}
+                        </li>
+                </ol>
+            </div> 
+    </div>        
     {% endfor %}
 {% else %}
     <p>There is nothing left to do.</p>
 {% endif %}
-
