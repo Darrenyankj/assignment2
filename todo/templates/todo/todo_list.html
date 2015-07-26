@@ -1,0 +1,21 @@
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'todo/style.css' %}" />
+<h2> Total number of things to do: {{total}} </h2>
+{% if object_list %}
+    <div class="wrap">
+        <div class="header"><span>Todo List</span></div>
+            <div class="wrap-list">
+                <ol class="list">
+                    {% for thing in object_list %}
+                            <li>
+                            <a href={% url 'detail' thing.id %}>
+                            <input type="checkbox" thing.id >
+                            <label for=thing.id> {{thing.title}}</label></a>
+                            </li>
+                            {%endfor%}
+                </ol>
+            </div> 
+    </div>        
+{% else %}
+    <p>There is nothing left to do.</p>
+{% endif %}
