@@ -15,5 +15,5 @@ urlpatterns = patterns('',
     url(r'^add/$', views.TodoCreate.as_view(), name='todo_add'),
     url(r'^todo/(?P<pk>\d+)/edit/$', views.TodoUpdate.as_view(),  name='todo_update'),
     url(r'^todo/(?P<pk>\d+)$', views.TodoDetail.as_view(),  name='detail'),
-    url(r'^todo/(?P<pk>\d+)/edit/delete/$', views.TodoDelete.as_view(),  name='todo_update'),
+    url(r'^todo/(?P<pk>\d+)/edit/delete/$', views.TodoDelete.as_view(),  name='todo_delete'),
 )

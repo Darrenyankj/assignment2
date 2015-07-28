@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from .models import Todo
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.core.urlresolvers import reverse_lazy
 from todo.forms import TodoForm
 from django.conf.urls import url
 from django.db.models import Q
@@ -63,8 +64,7 @@ class TodoDetail(DetailView):
     
 class TodoDelete(DeleteView):
     model = Todo
-    
-    success_url = url(r'^listall/$', ListView.as_view(model=Todo), name='todo_listall')
+    success_url = reverse_lazy("todo_listall")
     
 class TodobyTag(ListView):
     model = Todo
