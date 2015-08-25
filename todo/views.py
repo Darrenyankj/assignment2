@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
@@ -8,66 +10,78 @@ from django.core.urlresolvers import reverse_lazy
 from todo.forms import TodoForm
 from django.conf.urls import url
 from django.db.models import Q
-
+from .models import Todo, Folder, Tag
+from .forms import TodoForm, FolderForm, TagForm, TodoFormUpdate
+from django.views.generic import DetailView, ListView, TemplateView
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.core.serializers.json import DjangoJSONEncoder
+from accounts.models import UserProfile
 
 # Create your views here.
-def todo_list(request):
-    alltodo = Todo.objects.all()
-    return render(request, 'todo/index.html', {'things': alltodo}) 
-
-'''def todo_list(request):
-    alltodo = Todo.objects.all()
-    responsetext = ""
-    for todo in alltodo:
-        url = reverse('things_detail', args=str(todo.id))
-        responsetext += "<a href='"+ url + "'>"
-        responsetext += "<h2>" + todo.title + "</h2></a>"
-    return HttpResponse(responsetext)'''
 
     
-def todo_detail(request, todo_id):
-    todo = Todo.objects.get(id = todo_id)
-    responsetext = ""
-    responsetext += "<h2>" + todo.title + "</h2>"
-    responsetext += "<p>" + todo.content + "</p>"
-    responsetext += "<p>" + "Do by: " + str(todo.due) + "</p>"
-    return HttpResponse(responsetext)
-    
-class TodoList(ListView):
-    #https://docs.djangoproject.com/en/1.7/topics/class-based-views/generic-display/
+class TodoList(ListView): 
     model = Todo
+    queryset = Todo.objects.all()
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(TodoList, self).dispatch(*args, **kwargs)
     
     def get_queryset(self):
+        #self.request.user will contain the "User" object, however,
+        #user field in the Todo model is an instance of "UserProfile" object
+        #So need to ensure that when we filter all the user owned todos, we
+        #filter using the 'correct' UserProfile instance based on logged in "User" object 
+        #in self.request.user
+        curruser = UserProfile.objects.get(user=self.request.user)
         folder = self.kwargs['folder']
         if folder == '':
-            self.queryset = Todo.objects.all()
+            #filter based on current logged in user
+            self.queryset = Todo.objects.filter(user=curruser)
             return self.queryset
         else:
-            self.queryset = Todo.objects.filter(folder__title__iexact=folder)
+            #filter based on current logged in user
+            self.queryset = Todo.objects.all().filter(user=curruser).filter(folder__title__iexact=folder)
             return self.queryset
-            
+    
     def get_context_data(self, **kwargs):
         context = super(TodoList, self).get_context_data(**kwargs)
         context['total'] = self.queryset.count()
+        #provided so that the avatar can be displayed in base.html
+        context['curruser'] = UserProfile.objects.get(user=self.request.user)
         return context
-            
-class TodoCreate(CreateView):
-    model = Todo
-    form_class = TodoForm
 
-class TodoUpdate(UpdateView):
-    model = Todo
-    form_class = TodoForm
-    
+
 class TodoDetail(DetailView):
     model = Todo
     
-class TodoDelete(DeleteView):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(TodoDetail, self).dispatch(*args, **kwargs)
+        
+    def get_context_data(self, **kwargs):
+        context = super(TodoDetail, self).get_context_data(**kwargs)
+        context['curruser'] = UserProfile.objects.get(user=self.request.user)
+        return context
+
+class TodoUpdate(UpdateView):
     model = Todo
-    success_url = reverse_lazy("todo_listall")
+    form_class = TodoFormUpdate
     
-class TodobyTag(ListView):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(TodoUpdate, self).dispatch(*args, **kwargs)
+        
+    def get_context_data(self, **kwargs):
+        context = super(TodoUpdate, self).get_context_data(**kwargs)
+        context['curruser'] = UserProfile.objects.get(user=self.request.user)
+        return context
+    
+class TodoByTag(ListView):
     model = Todo
+    
     queryset = Todo.objects.all()
     def get_queryset(self):
         tags = self.kwargs['tags']
@@ -80,11 +94,91 @@ class TodobyTag(ListView):
         for item in queries:
             query |= item
         # Query the model
-        alltodo = Todo.objects.filter(query).distinct().order_by('tag__title')
-        self.queryset = alltodo #Setting the queryset to allow get_context_data to apply count
-        return alltodo
+        curruser = UserProfile.objects.filter(user=self.request.user) #only query todos by curruser
+        alltodos = Todo.objects.filter(user=curruser).filter(query).distinct().order_by('tag__title')
+        self.queryset = alltodos #Setting the queryset to allow get_context_data to apply count
+        return alltodos
     
     def get_context_data(self, **kwargs):
-        context = super(TodobyTag, self).get_context_data(**kwargs)
+        context = super(TodoByTag, self).get_context_data(**kwargs)
         context['total'] = self.queryset.count()
+        context['curruser'] = UserProfile.objects.get(user=self.request.user)
+        return context
+
+
+class MyView(TemplateView):
+    folder_form_class = FolderForm
+    tag_form_class = TagForm
+    todo_form_class = TodoForm
+    template_name = "todo/todo_hybrid.html"
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(MyView, self).dispatch(*args, **kwargs)
+        
+    def get(self, request, *args, **kwargs):
+        kwargs.setdefault("createfolder_form", self.folder_form_class())
+        kwargs.setdefault("createtag_form", self.tag_form_class())
+        kwargs.setdefault("createtodo_form", self.todo_form_class())
+        #Added curruser so that profile picture of curruser can be rendered.
+        kwargs.setdefault('curruser', UserProfile.objects.get(user=self.request.user))
+        return super(MyView, self).get(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        form_args = {
+            'data': self.request.POST,
+        }
+        
+        if "btn_createfolder" in request.POST['form']:
+            form = self.folder_form_class(**form_args)
+            if not form.is_valid():
+                return self.get(request,
+                                   createfolder_form=form)
+            else:
+                form.save()
+                data = Folder.objects.all()
+                result_list = list(data.values('id','title'))
+                return HttpResponse(json.dumps(result_list, cls=DjangoJSONEncoder))
+        elif "btn_createtag" in request.POST['form']:
+            form = self.tag_form_class(**form_args)
+            if not form.is_valid():
+                return self.get(request,
+                                   createtag_form=form)
+            else:
+                form.save() #save the new object
+                data = Tag.objects.all() # retrieve all records
+                result_list = list(data.values('id','title'))
+                return HttpResponse(json.dumps(result_list, cls=DjangoJSONEncoder)) #return to ajax as success with all the new records.
+        elif "btn_createtodo" in request.POST['form']:
+            form = self.todo_form_class(**form_args)
+            if not form.is_valid():
+                return self.get(request,
+                                   createtodo_form=form) 
+            else:
+                try:
+                    #Find out which user is logged in and get the correct UserProfile record.
+                    curruser = UserProfile.objects.get(user=self.request.user)
+                    obj = form.save(commit=False)
+                    obj.user = curruser #Save the todo todo under that user
+                    obj.save() #save the new object
+                    
+                except Exception, e:
+                    print("errors" + str(e))
+                response = {'status': 1, 'message':'ok'}
+                return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder)) #return to ajax as success with all the new records.
+            
+        return super(MyView, self).get(request)
+    
+
+class TodoDelete(DeleteView):
+    model = Todo
+    success_url = '/list/'
+    
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(TodoDelete, self).dispatch(*args, **kwargs)
+        
+    def get_context_data(self, **kwargs):
+        context = super(TodoDelete, self).get_context_data(**kwargs)
+        context['curruser'] = UserProfile.objects.get(user=self.request.user)
         return context
